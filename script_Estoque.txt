@@ -1,0 +1,34 @@
+#01 inicializar o BDR mariaDB (antigo MySQL)
+mysql -u root
+
+#02 verificar se o mariaDB está funcionando>
+show databases;
+
+#03 criar um banco de dados com o nome que desejar>
+create database estoque;
+
+#04 usar o banco criado>
+use estoque;
+
+
+#05 criar tabela>
+CREATE TABLE IF NOT EXISTS CentroCusto (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nome VARCHAR(255) NOT NULL
+);
+
+
+CREATE TABLE IF NOT EXISTS Produto (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nome VARCHAR(255) NOT NULL,
+    quantidade INT NOT NULL,
+    centroCustoId INT NOT NULL,
+    FOREIGN KEY (centroCustoId) REFERENCES CentroCusto(id)
+);
+
+
+
+#06 Verificar a estrutura da tabela criada>
+desc CentroCusto;
+desc Produto;
+

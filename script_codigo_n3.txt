@@ -1,0 +1,474 @@
+// Classe CentroCusto - Representa um Centro de Custo com id e nome
+package Estoque;
+
+public class CentroCusto {
+    private int id;  // Identificador único do Centro de Custo
+    private String nome;  // Nome do Centro de Custo
+
+// Construtor para inicializar um Centro de Custo
+    public CentroCusto(int id, String nome) {
+        this.id = id;
+        this.nome = nome;
+    }
+
+// Métodos getters para acessar as propriedades
+    public int getId() {
+        return id;
+    }
+
+    public String getNome() {
+        return nome;
+    }
+}
+
+
+------------------------------------------------------
+// Classe Produto - Representa um Produto, com id, nome, quantidade e um Centro de Custo associado
+package Estoque;
+
+public class Produto {
+    private int id;  // Identificador único do Produto
+    private String nome;  // Nome do Produto
+    private int quantidade;  // Quantidade do Produto em estoque
+    private CentroCusto centroCusto;  // Centro de Custo ao qual o Produto pertence
+
+    public Produto(int id, String nome, int quantidade, CentroCusto centroCusto) {
+        this.id = id;
+        this.nome = nome;
+        this.quantidade = quantidade;
+        this.centroCusto = centroCusto;
+    }
+
+// Métodos getters para acessar as propriedades
+    public int getId() {
+        return id;
+    }
+
+    public String getNome() {
+        return nome;
+    }
+
+    public int getQuantidade() {
+        return quantidade;
+    }
+
+    public CentroCusto getCentroCusto() {
+        return centroCusto;
+    }
+}
+
+
+---------------------------------------------------------------
+// Classe DatabaseConnection - Responsável por gerenciar a conexão com o banco de dados MySQL
+package Estoque;
+
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+
+public class DatabaseConnection {
+    public static String status = "Não conectou...";  // Status da conexão
+
+// Método para obter a conexão com o banco de dados
+    public static Connection connect() {
+        Connection connection = null;    
+        String driverName = "com.mysql.cj.jdbc.Driver";  // Driver JDBC para MySQL
+        String serverName = "localhost";  // Servidor de banco de dados
+        String mydatabase = "estoque";  // Nome do banco de dados
+        String url = "jdbc:mysql://" + serverName + "/" + mydatabase;  // URL de conexão
+        String username = "root";  // Usuário do banco
+        String password = "";    // Senha do banco (ajuste conforme necessário)
+
+        try {
+        // Carregar o driver JDBC
+            Class.forName(driverName);
+        } catch (ClassNotFoundException e) {
+            System.err.println("O driver JDBC não foi encontrado.");
+            e.printStackTrace();
+            return null; // Retorna null em caso de erro no carregamento do driver
+        }
+
+        try {
+        // Estabelecer conexão
+            connection = DriverManager.getConnection(url, username, password);
+            status = "Conectado com sucesso!";  // Atualiza o status de conexão
+            System.out.println("Banco " + mydatabase + ": " + status);
+        } catch (SQLException e) {
+            status = "Erro ao conectar ao banco de dados.";  // Caso haja erro na conexão
+            System.err.println(status);
+            e.printStackTrace();
+        }
+
+        return connection;  // Retorna a conexão ou null em caso de falha
+    }
+}
+
+
+---------------------------------------------------
+// Classe CentroCustoDAO - Responsável pelas operações CRUD de Centro de Custo no banco de dados
+package Estoque;
+
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.List;
+
+public class CentroCustoDAO {
+// Método para adicionar um novo Centro de Custo
+    public void addCentroCusto(String nome) throws SQLException {
+        String sql = "INSERT INTO CentroCusto(nome) VALUES(?)";  // SQL para inserir novo centro de custo
+        try (Connection conn = DatabaseConnection.connect();  // Conexão com o banco
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {  // Prepara a declaração SQL
+            pstmt.setString(1, nome);  // Define o nome do Centro de Custo
+            pstmt.executeUpdate();  // Executa a atualização no banco
+        }
+    }
+
+// Método para obter todos os Centros de Custo
+    public List<CentroCusto> getAllCentros() throws SQLException {
+        String sql = "SELECT * FROM CentroCusto";  // SQL para selecionar todos os Centros de Custo
+        List<CentroCusto> centros = new ArrayList<>();
+        try (Connection conn = DatabaseConnection.connect();
+             Statement stmt = conn.createStatement();  // Executa a consulta
+             ResultSet rs = stmt.executeQuery(sql)) {  // Resultado da consulta
+            while (rs.next()) {
+                centros.add(new CentroCusto(rs.getInt("id"), rs.getString("nome")));  // Adiciona cada Centro de Custo à lista
+            }
+        }
+        return centros;  // Retorna a lista de Centros de Custo
+    }
+    
+// Método para atualizar o nome de um Centro de Custo
+    public void updateCentroCusto(int id, String novoNome) throws SQLException {
+        String sql = "UPDATE CentroCusto SET nome = ? WHERE id = ?";  // SQL para atualizar o nome do Centro de Custo
+        try (Connection conn = DatabaseConnection.connect();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, novoNome);  // Define o novo nome
+            pstmt.setInt(2, id);  // Define o ID do Centro de Custo
+            pstmt.executeUpdate();  // Executa a atualização no banco
+        }
+    }
+    
+// Método para excluir um Centro de Custo pelo ID
+    public void deleteCentroCusto(int id) throws SQLException {
+        String sql = "DELETE FROM CentroCusto WHERE id = ?";  // SQL para excluir o Centro de Custo
+        try (Connection conn = DatabaseConnection.connect();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, id);  // Define o ID do Centro de Custo
+            pstmt.executeUpdate();  // Executa a exclusão no banco
+        }
+    }
+}
+
+
+------------------------------------------------------------
+// Classe ProdutoDAO - Responsável pelas operações CRUD de Produto no banco de dados
+package Estoque;
+
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.List;
+
+public class ProdutoDAO {
+// Método para adicionar um novo Produto
+    public void addProduto(String nome, int quantidade, int centroCustoId) throws SQLException {
+        String sql = "INSERT INTO Produto(nome, quantidade, centroCustoId) VALUES(?, ?, ?)";  // SQL para inserir novo produto
+        try (Connection conn = DatabaseConnection.connect();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, nome);  // Define o nome do Produto
+            pstmt.setInt(2, quantidade);  // Define a quantidade do Produto
+            pstmt.setInt(3, centroCustoId);  // Define o ID do Centro de Custo associado
+            pstmt.executeUpdate();  // Executa a inserção no banco
+        }
+    }
+
+// Método para obter todos os Produtos
+    public List<Produto> getAllProdutos() throws SQLException {
+        String sql = "SELECT p.id, p.nome, p.quantidade, c.id AS centroId, c.nome AS centroNome FROM Produto p " +
+                     "JOIN CentroCusto c ON p.centroCustoId = c.id";  // SQL para selecionar todos os produtos com seu Centro de Custo
+        List<Produto> produtos = new ArrayList<>();
+        try (Connection conn = DatabaseConnection.connect();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {  // Executa a consulta
+            while (rs.next()) {
+                CentroCusto centro = new CentroCusto(rs.getInt("centroId"), rs.getString("centroNome"));
+                produtos.add(new Produto(rs.getInt("id"), rs.getString("nome"), rs.getInt("quantidade"), centro));  // Adiciona o produto à lista
+            }
+        }
+        return produtos;  // Retorna a lista de Produtos
+    }
+
+// Método para atualizar um Produto
+    public void updateProduto(int id, String novoNome, int novaQuantidade, int novoCentroId) throws SQLException {
+        String sql = "UPDATE Produto SET nome = ?, quantidade = ?, centroCustoId = ? WHERE id = ?";  // SQL para atualizar um produto
+        try (Connection conn = DatabaseConnection.connect();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, novoNome);  // Define o novo nome do produto
+            pstmt.setInt(2, novaQuantidade);  // Define a nova quantidade
+            pstmt.setInt(3, novoCentroId);  // Define o novo Centro de Custo
+            pstmt.setInt(4, id);  // Define o ID do Produto
+            pstmt.executeUpdate();  // Executa a atualização no banco
+        }
+    }
+
+// Método para excluir um Produto
+    public void deleteProduto(int id) throws SQLException {
+        String sql = "DELETE FROM Produto WHERE id = ?";  // SQL para excluir um produto
+        try (Connection conn = DatabaseConnection.connect();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, id);  // Define o ID do Produto
+            pstmt.executeUpdate();  // Executa a exclusão no banco
+        }
+    }
+}
+
+
+--------------------------------------------------------------
+package Estoque;
+
+import java.awt.GridLayout;
+import java.sql.SQLException;
+import java.util.List;
+import javax.swing.JButton;
+import javax.swing.JFrame;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+
+public class EstoqueApp {
+    public static void main(String[] args) {
+// Criação da janela principal (frame) do aplicativo
+        JFrame frame = new JFrame("Gerenciamento de Estoque");
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);  // Quando a janela for fechada, o aplicativo será finalizado
+        frame.setSize(400, 300);  // Define o tamanho da janela
+
+// Instância dos DAOs para manipulação dos dados de Centro de Custo e Produto
+        CentroCustoDAO centroCustoDAO = new CentroCustoDAO();
+        ProdutoDAO produtoDAO = new ProdutoDAO();
+
+// Painel para adicionar botões à interface gráfica
+        JPanel panel = new JPanel(new GridLayout(0, 1));
+
+// ** Botão para adicionar um novo Centro de Custo **
+        JButton btnAddCentro = new JButton("Adicionar Centro de Custo");
+        btnAddCentro.addActionListener(e -> {
+            String nome = JOptionPane.showInputDialog("Nome do Centro de Custo:");
+            if (nome != null && !nome.isEmpty()) {
+                try {
+                	// Chama o método para adicionar o Centro de Custo no banco de dados
+                    centroCustoDAO.addCentroCusto(nome);
+                    JOptionPane.showMessageDialog(frame, "Centro de Custo adicionado com sucesso!");
+                } catch (SQLException ex) {
+                	// Caso ocorra erro na adição, exibe a mensagem de erro
+                    JOptionPane.showMessageDialog(frame, "Erro: " + ex.getMessage());
+                }
+            }
+        });
+
+// ** Botão para atualizar um Centro de Custo **
+        JButton btnUpdateCentro = new JButton("Atualizar Centro de Custo");
+        btnUpdateCentro.addActionListener(e -> {
+            try {
+            	// Obtem todos os Centros de Custo cadastrados
+                List<CentroCusto> centros = centroCustoDAO.getAllCentros();
+                String[] centroNomes = centros.stream().map(CentroCusto::getNome).toArray(String[]::new);
+
+                // Exibe um menu para o usuário escolher qual Centro de Custo ele deseja atualizar
+                String centroSelecionado = (String) JOptionPane.showInputDialog(frame, "Selecione o Centro de Custo:",
+                        "Atualizar Centro de Custo", JOptionPane.QUESTION_MESSAGE, null, centroNomes, centroNomes[0]);
+
+                if (centroSelecionado != null) {
+                    // Busca o id do Centro de Custo selecionado
+                    int centroId = centros.stream().filter(c -> c.getNome().equals(centroSelecionado))
+                            .findFirst().orElseThrow().getId();
+
+                    // Solicita o novo nome para o Centro de Custo
+                    String novoNome = JOptionPane.showInputDialog("Novo nome para o Centro de Custo:");
+                    if (novoNome != null && !novoNome.isEmpty()) {
+                        // Atualiza o Centro de Custo no banco de dados
+                        centroCustoDAO.updateCentroCusto(centroId, novoNome);
+                        JOptionPane.showMessageDialog(frame, "Centro de Custo atualizado com sucesso!");
+                    }
+                }
+            } catch (SQLException ex) {
+                // Exibe erro em caso de falha na atualização
+                JOptionPane.showMessageDialog(frame, "Erro: " + ex.getMessage());
+            }
+        });
+
+// ** Botão para excluir um Centro de Custo **
+        JButton btnDeleteCentro = new JButton("Excluir Centro de Custo");
+        btnDeleteCentro.addActionListener(e -> {
+            try {
+                // Obtem todos os Centros de Custo cadastrados
+                List<CentroCusto> centros = centroCustoDAO.getAllCentros();
+                String[] centroNomes = centros.stream().map(CentroCusto::getNome).toArray(String[]::new);
+
+                // Exibe um menu para o usuário escolher o Centro de Custo que ele deseja excluir
+                String centroSelecionado = (String) JOptionPane.showInputDialog(frame, "Selecione o Centro de Custo para excluir:",
+                        "Excluir Centro de Custo", JOptionPane.QUESTION_MESSAGE, null, centroNomes, centroNomes[0]);
+
+                if (centroSelecionado != null) {
+                    // Busca o id do Centro de Custo selecionado
+                    int centroId = centros.stream().filter(c -> c.getNome().equals(centroSelecionado))
+                            .findFirst().orElseThrow().getId();
+                    
+                    // Exclui o Centro de Custo do banco de dados
+                    centroCustoDAO.deleteCentroCusto(centroId);
+                    JOptionPane.showMessageDialog(frame, "Centro de Custo excluído com sucesso!");
+                }
+            } catch (SQLException ex) {
+                // Exibe erro em caso de falha na exclusão
+                JOptionPane.showMessageDialog(frame, "Erro: " + ex.getMessage());
+            }
+        });
+
+// ** Botão para listar todos os Centros de Custo **
+        JButton btnListCentrosCusto = new JButton("Listar Centros de Custo");
+        btnListCentrosCusto.addActionListener(e -> {
+            try {
+                // Obtem todos os Centros de Custo cadastrados
+                List<CentroCusto> centrosCusto = centroCustoDAO.getAllCentros();
+                StringBuilder sb = new StringBuilder("Centros de Custo:\n");
+                for (CentroCusto centro : centrosCusto) {
+                    sb.append(String.format("ID: %d, Nome: %s%n",
+                            centro.getId(), centro.getNome()));
+                }
+                // Exibe a lista de Centros de Custo
+                JOptionPane.showMessageDialog(frame, sb.toString());
+            } catch (SQLException ex) {
+                // Exibe erro em caso de falha na listagem
+                JOptionPane.showMessageDialog(frame, "Erro: " + ex.getMessage());
+            }
+        });
+
+// ** Botão para adicionar um novo Produto **
+        JButton btnAddProduto = new JButton("Adicionar Produto");
+        btnAddProduto.addActionListener(e -> {
+            try {
+                String nome = JOptionPane.showInputDialog("Nome do Produto:");
+                int quantidade = Integer.parseInt(JOptionPane.showInputDialog("Quantidade:"));
+
+                // Obtem todos os Centros de Custo para associar ao Produto
+                List<CentroCusto> centros = centroCustoDAO.getAllCentros();
+                String[] centroNomes = centros.stream().map(CentroCusto::getNome).toArray(String[]::new);
+                String centroSelecionado = (String) JOptionPane.showInputDialog(frame, "Selecione o Centro de Custo:",
+                        "Centro de Custo", JOptionPane.QUESTION_MESSAGE, null, centroNomes, centroNomes[0]);
+
+                // Busca o id do Centro de Custo selecionado
+                int centroId = centros.stream().filter(c -> c.getNome().equals(centroSelecionado))
+                        .findFirst().orElseThrow().getId();
+
+                // Adiciona o Produto ao banco de dados
+                produtoDAO.addProduto(nome, quantidade, centroId);
+                JOptionPane.showMessageDialog(frame, "Produto adicionado com sucesso!");
+            } catch (SQLException | NumberFormatException ex) {
+                // Exibe erro em caso de falha ao adicionar o Produto
+                JOptionPane.showMessageDialog(frame, "Erro: " + ex.getMessage());
+            }
+        });
+
+// ** Botão para atualizar um Produto **
+        JButton btnUpdateProduto = new JButton("Atualizar Produto");
+        btnUpdateProduto.addActionListener(e -> {
+            try {
+                // Obtem todos os Produtos cadastrados
+                List<Produto> produtos = produtoDAO.getAllProdutos();
+                String[] produtoNomes = produtos.stream().map(Produto::getNome).toArray(String[]::new);
+                String produtoSelecionado = (String) JOptionPane.showInputDialog(frame, "Selecione o Produto para atualizar:",
+                        "Atualizar Produto", JOptionPane.QUESTION_MESSAGE, null, produtoNomes, produtoNomes[0]);
+
+                if (produtoSelecionado != null) {
+                    Produto produto = produtos.stream().filter(p -> p.getNome().equals(produtoSelecionado))
+                            .findFirst().orElseThrow();
+
+                    // Solicita novos valores para o Produto
+                    String novoNome = JOptionPane.showInputDialog("Novo nome para o Produto:", produto.getNome());
+                    int novaQuantidade = Integer.parseInt(JOptionPane.showInputDialog("Nova quantidade:", produto.getQuantidade()));
+
+                    // Obtem os Centros de Custo e permite selecionar um novo para o Produto
+                    List<CentroCusto> centros = centroCustoDAO.getAllCentros();
+                    String[] centroNomes = centros.stream().map(CentroCusto::getNome).toArray(String[]::new);
+                    String centroSelecionado = (String) JOptionPane.showInputDialog(frame, "Selecione o novo Centro de Custo:",
+                            "Centro de Custo", JOptionPane.QUESTION_MESSAGE, null, centroNomes, produto.getCentroCusto().getNome());
+
+                    // Busca o id do novo Centro de Custo selecionado
+                    int centroId = centros.stream().filter(c -> c.getNome().equals(centroSelecionado))
+                            .findFirst().orElseThrow().getId();
+
+                    // Atualiza o Produto no banco de dados
+                    produtoDAO.updateProduto(produto.getId(), novoNome, novaQuantidade, centroId);
+                    JOptionPane.showMessageDialog(frame, "Produto atualizado com sucesso!");
+                }
+            } catch (SQLException | NumberFormatException ex) {
+                // Exibe erro em caso de falha na atualização
+                JOptionPane.showMessageDialog(frame, "Erro: " + ex.getMessage());
+            }
+        });
+
+// ** Botão para excluir um Produto **
+        JButton btnDeleteProduto = new JButton("Excluir Produto");
+        btnDeleteProduto.addActionListener(e -> {
+            try {
+                // Obtem todos os Produtos cadastrados
+                List<Produto> produtos = produtoDAO.getAllProdutos();
+                String[] produtoNomes = produtos.stream().map(Produto::getNome).toArray(String[]::new);
+                String produtoSelecionado = (String) JOptionPane.showInputDialog(frame, "Selecione o Produto para excluir:",
+                        "Excluir Produto", JOptionPane.QUESTION_MESSAGE, null, produtoNomes, produtoNomes[0]);
+
+                if (produtoSelecionado != null) {
+                    Produto produto = produtos.stream().filter(p -> p.getNome().equals(produtoSelecionado))
+                            .findFirst().orElseThrow();
+
+                    // Exclui o Produto do banco de dados
+                    produtoDAO.deleteProduto(produto.getId());
+                    JOptionPane.showMessageDialog(frame, "Produto excluído com sucesso!");
+                }
+            } catch (SQLException ex) {
+                // Exibe erro em caso de falha na exclusão
+                JOptionPane.showMessageDialog(frame, "Erro: " + ex.getMessage());
+            }
+        });
+
+// ** Botão para listar todos os Produtos **
+        JButton btnListProdutos = new JButton("Listar Produtos");
+        btnListProdutos.addActionListener(e -> {
+            try {
+                // Obtem todos os Produtos cadastrados
+                List<Produto> produtos = produtoDAO.getAllProdutos();
+                StringBuilder sb = new StringBuilder("Produtos:\n");
+                for (Produto produto : produtos) {
+                    sb.append(String.format("Nome: %s, Quantidade: %d, Centro: %s%n",
+                            produto.getNome(), produto.getQuantidade(), produto.getCentroCusto().getNome()));
+                }
+                // Exibe a lista de Produtos
+                JOptionPane.showMessageDialog(frame, sb.toString());
+            } catch (SQLException ex) {
+                // Exibe erro em caso de falha na listagem
+                JOptionPane.showMessageDialog(frame, "Erro: " + ex.getMessage());
+            }
+        });
+
+        // Adiciona os botões ao painel
+        panel.add(btnAddCentro);
+        panel.add(btnUpdateCentro);
+        panel.add(btnDeleteCentro);
+        panel.add(btnListCentrosCusto);
+        panel.add(btnAddProduto);
+        panel.add(btnUpdateProduto);
+        panel.add(btnDeleteProduto);
+        panel.add(btnListProdutos);
+
+        // Adiciona o painel ao frame (janela)
+        frame.add(panel);
+        frame.setVisible(true);  // Exibe a janela
+    }
+}
+
+
